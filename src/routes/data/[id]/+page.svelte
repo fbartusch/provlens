@@ -66,7 +66,7 @@
 <style>
     textarea {
       width: 100%;
-      height: 300px;
+      height: 800px;
       padding: 10px;
       font-family: monospace;
       background-color: #f0f0f0;
