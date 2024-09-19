@@ -36,3 +36,18 @@ npm run build
 You can preview the production build with `npm run preview`.
 
 > To deploy your app, you may need to install an [adapter](https://kit.svelte.dev/docs/adapters) for your target environment.
+
+## Before comitting
+
+Run prettier code formatter.
+
+```
+npx prettier . --write
+npx prettier . --check
+```
+
+Run ESLint linter:
+
+```
+npx eslint
+```
