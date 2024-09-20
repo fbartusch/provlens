@@ -36,7 +36,10 @@
 	},
 	"type": "module",
 	"dependencies": {
+		"@popperjs/core": "^2.11.8",
 		"cytoscape": "^3.30.2",
-		"n3": "^1.22.0"
+		"cytoscape-popper": "^4.0.1",
+		"n3": "^1.22.0",
+		"tippy.js": "^6.3.7"
 	}
 }

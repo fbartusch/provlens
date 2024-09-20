@@ -5,6 +5,13 @@
 	// @ts-ignore
 	import { Parser } from 'n3';
 
+	// TODO: use Floating UI instead of deprecated Popper2 for tooltips.
+	// See: https://github.com/cytoscape/cytoscape.js-popper?tab=readme-ov-file#migration-from-v2
+	// See: https://floating-ui.com/docs/migration
+	//import Popper from '@popperjs/core';
+	//import tippy from 'tippy.js';
+	//import cytoscapePopper from 'cytoscape-popper';
+
 	// Subscribing to the page store to get the URL parameters
 	// @ts-ignore
 	// @ts-ignore
@@ -74,6 +81,9 @@
 		const nodeMap = new Map(); // To store nodes and their properties
 
 		// @ts-ignore
+		/**
+		 * @type {{ data: { source: any; target: any; label: any; }; }[]}
+		 */
 		const cyEdges = []; // To store edges (predicates as links between subject and object)
 
 		// Some predicates simply define an edge between two nodes
@@ -120,13 +130,13 @@
 			}
 		}));
 
-		console.log(cyNodes)
+		console.log('cyNodes: ', cyNodes);
+		console.log('cyEdges: ', cyEdges);
 		// Add edges to the elements list
-		cyElements = [...cyNodes];
-
+		cyElements = [...cyNodes, ...cyEdges];
 
 		// Specify types
-		const agentTypes = {}
+		const agentTypes = {};
 
 		// Parse the Turtle string and store each quad
 		// @ts-ignore
@@ -199,10 +209,79 @@
 			}
 		});
 
-		cy.center()
-		cy.fit()
-	}
+		cy.center();
+		cy.fit();
 
+		// Set tooltip text for each node
+		//cy.nodes().forEach(setTooltip);
+
+		/**
+		 * 
+		 * Event implementations
+		 * 
+		 */
+
+		/**
+		 * Mouseover
+		 * 
+		 * Show node data information during mouseover
+		 */
+
+		// Mouseover
+		cy.on('mouseover', 'node', function(evt){
+			var node = evt.target;
+			//node.scratch('_tooltip').show();
+		});
+
+		// Mouseout
+		cy.on('mouseout', 'node', function(evt){
+			var node = evt.target;
+			//node.scratch('_tooltip').hide();
+		});
+
+
+		/**
+		 * Mouse Click
+		 * 
+		 * Hide all other nodes not connected to this tapped node
+		 */
+
+
+		// Click
+		cy.on('click', function(event) {
+
+			var evtTarget = event.target;
+
+			if (evtTarget == cy) {
+				console.log('click on background');
+				cy.nodes().style("opacity", 1.0);
+				cy.edges().style("opacity", 1.0);
+			}
+			else if (evtTarget.isNode()) {
+				var node = evtTarget;
+				console.log( 'clicked ' + node.id() );
+
+				// Neighbors of clicked node
+				var directlyConnected = node.neighborhood().merge(node);
+				console.log(directlyConnected);
+
+				// Hide all nodes that are not in Neighborhood
+				var absComplement = directlyConnected.absoluteComplement();
+				console.log(absComplement)
+
+				absComplement.style("opacity", 0.2);
+				directlyConnected.style("opacity", 1.0);
+
+				// Highlight the clicked node
+				node.style("border-width", "3px");
+				node.style("border-color", "red");
+			}
+
+			else if (evtTarget.isEdge) {
+				// not yet implemented
+			}
+		});
+	}
 
 	// @ts-ignore
 	function getLocalName(uri) {
@@ -212,6 +291,96 @@
 		} else {
 			return uri.split(':')[1];
 		}
+	}
+
+	/**
+	 * Functions
+	 */
+
+	// Function that sets tipy tooltip for the element
+	function setTooltip(ele) {
+		var tooltipText = buildTooltipText(ele);
+
+		// Add tippy tooltip to node data
+		var tippyTooltip = makeTippy(ele, tooltipText);
+		//tippyTooltip.hide();
+		ele.scratch('_tooltip', tippyTooltip);
+	}
+
+	function makeTippy(ele, text) {
+		var ref = ele.popperRef();
+
+		// Since tippy constructor requires DOM element/elements, create a placeholder
+		var dummyDomEle = document.createElement('div');
+
+		var tip = tippy(dummyDomEle, {
+			getReferenceClientRect: ref.getBoundingClientRect,
+			trigger: 'manual', // mandatory
+			// dom element inside the tippy:
+			content: function () {
+				// function can be better for performance
+				var div = document.createElement('div');
+
+				div.innerHTML = text;
+
+				return div;
+			},
+			// your own preferences:
+			arrow: true,
+			placement: 'bottom',
+			hideOnClick: false,
+
+			sticky: 'reference',
+
+			// if interactive:
+			interactive: true,
+			appendTo: document.body // or append dummyDomEle to document.body
+		});
+
+		return tip;
+	}
+
+	// Function returns tooltip text (HTML) for nodes and edges
+	function buildTooltipText(ele) {
+		var tooltipText = '';
+		var data = ele.data();
+
+		if (ele.isEdge()) {
+		}
+
+		if (ele.isNode()) {
+			var nodeType = data['type'];
+
+			if (nodeType == 'agent') {
+				tooltipText =
+					data['title'] +
+					' ' +
+					data['givenName'] +
+					' ' +
+					data['familyName'] +
+					'</br>ORCID: ' +
+					data['orcid'] +
+					'</br>Mail: ' +
+					data['mbox'];
+			}
+
+			if (nodeType == 'activity') {
+				tooltipText =
+					'ID: ' +
+					data['id'] +
+					'</br>Start: ' +
+					data['startTime'] +
+					'</br>endTime: ' +
+					data['endTime'];
+			}
+
+			if (nodeType == 'entity') {
+				tooltipText =
+					'ID: ' + data['id'] + '</br>SHA-256: ' + data['sha256'] + '</br>path: ' + data['path'];
+			}
+		}
+
+		return tooltipText;
 	}
 </script>
 
@@ -225,7 +394,7 @@
 
 	<!-- Textarea to display the server response -->
 	<textarea readonly bind:value={serverResponse}></textarea>
-	<div id="cy" style="width: 600px; height: 400px;"></div>
+	<div id="cy"></div>
 </div>
 
 <style>
@@ -239,6 +408,11 @@
 	}
 
 	#cy {
+		position: absolute;
+		left: 50px;
+		width: calc(100% - 100px);
+		height: calc(100% - 100px);
 		border: 1px solid black;
+		padding: 5px;
 	}
 </style>
