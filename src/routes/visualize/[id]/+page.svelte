@@ -1,30 +1,17 @@
 <script>
 	import { page } from '$app/stores'; // Import the page store
-	import { onMount } from 'svelte';
-	import { subgraph_query } from '$lib/queries/subgraph.sparql';
-	// @ts-ignore
-	import { Parser } from 'n3';
-
-	// TODO: use Floating UI instead of deprecated Popper2 for tooltips.
-	// See: https://github.com/cytoscape/cytoscape.js-popper?tab=readme-ov-file#migration-from-v2
-	// See: https://floating-ui.com/docs/migration
-	//import Popper from '@popperjs/core';
-	//import tippy from 'tippy.js';
-	//import cytoscapePopper from 'cytoscape-popper';
-
-	// Subscribing to the page store to get the URL parameters
-	// @ts-ignore
-	// @ts-ignore
-	$: console.log($page.params.id); // Debug
-
-	// @ts-ignore
-	// @ts-ignore
 	import { dataset_gsp_endpoint, sparql_url } from '../../../store';
 	import { basicAuth } from '../../../store';
+	import { onMount } from 'svelte';
+
+	import { subgraph_query } from '$lib/queries/subgraph.sparql';
+	import { Parser } from 'n3';
 
 	import cytoscape from 'cytoscape';
-	// @ts-ignore
-	// @ts-ignore
+	import cytoscapePopper from 'cytoscape-popper';
+	import { computePosition, flip, shift, limitShift } from '@floating-ui/dom';
+	import tippy, { sticky } from 'tippy.js';
+
 	let cy;
 
 	let serverResponse = ''; // Variable to hold the server's response
@@ -42,9 +29,9 @@
 			const response = await fetch($sparql_url, {
 				method: 'POST',
 				headers: {
-					'Content-Type': 'application/x-www-form-urlencoded', // SPARQL usually uses this MIME type
-					Authorization: `Basic ${$basicAuth}`, // Include Basic Authentication header
-					Accept: 'text/turtle' // Expecting JSON response
+					'Content-Type': 'application/x-www-form-urlencoded',
+					Authorization: `Basic ${$basicAuth}`,
+					Accept: 'text/turtle'
 				},
 				body: new URLSearchParams({
 					query: subgraph_query
@@ -53,10 +40,9 @@
 
 			if (response.ok) {
 				// Parse the JSON response
-				const data = await response.text(); // Use .text() for RDF/XML, .json() for JSON-LD, etc.
-				serverResponse = data; //JSON.stringify(data, null, 2);  // Pretty print JSON response
+				const data = await response.text();
+				serverResponse = data;
 				visualizeWorkflow(data);
-				//console.log('Server response:', serverResponse);
 			} else {
 				console.error('SPARQL query failed:', response.statusText);
 				throw new Error(`HTTP error! Status: ${response.status}`);
@@ -74,13 +60,11 @@
 	});
 
 	// Parse the Turtle data and prepare Cytoscape elements
-	// @ts-ignore
 	async function visualizeWorkflow(data) {
 		const parser = new Parser({ format: 'text/turtle' });
 
 		const nodeMap = new Map(); // To store nodes and their properties
 
-		// @ts-ignore
 		/**
 		 * @type {{ data: { source: any; target: any; label: any; }; }[]}
 		 */
@@ -96,7 +80,6 @@
 
 		const quads = parser.parse(data);
 
-		// @ts-ignore
 		quads.forEach((quad) => {
 			const localName = getLocalName(quad.predicate.value);
 			const subject = quad.subject.value;
@@ -130,8 +113,6 @@
 			}
 		}));
 
-		console.log('cyNodes: ', cyNodes);
-		console.log('cyEdges: ', cyEdges);
 		// Add edges to the elements list
 		cyElements = [...cyNodes, ...cyEdges];
 
@@ -139,13 +120,10 @@
 		const agentTypes = {};
 
 		// Parse the Turtle string and store each quad
-		// @ts-ignore
 		const cy = cytoscape({
 			container: document.getElementById('cy'),
-			// @ts-ignore
 			elements: cyElements,
 			style: [
-				// the stylesheet for the graph
 				// Agent node style
 				{
 					selector: 'node[type="prov:Agent"], node[type="provone:User"]',
@@ -213,77 +191,70 @@
 		cy.fit();
 
 		// Set tooltip text for each node
-		//cy.nodes().forEach(setTooltip);
+		cy.nodes().forEach(setTooltip);
 
 		/**
-		 * 
+		 *
 		 * Event implementations
-		 * 
+		 *
 		 */
 
 		/**
 		 * Mouseover
-		 * 
+		 *
 		 * Show node data information during mouseover
 		 */
 
 		// Mouseover
-		cy.on('mouseover', 'node', function(evt){
+		cy.on('mouseover', 'node', function (evt) {
 			var node = evt.target;
-			//node.scratch('_tooltip').show();
+
+			console.log(node.data()['type']);
+			node.scratch('_tooltip').show();
 		});
 
 		// Mouseout
-		cy.on('mouseout', 'node', function(evt){
+		cy.on('mouseout', 'node', function (evt) {
 			var node = evt.target;
-			//node.scratch('_tooltip').hide();
+			node.scratch('_tooltip').hide();
 		});
-
 
 		/**
 		 * Mouse Click
-		 * 
-		 * Hide all other nodes not connected to this tapped node
+		 * Make nodes and edges not connected to clicked node opaque.
 		 */
 
-
 		// Click
-		cy.on('click', function(event) {
+		cy.on('click', function (event) {
+			// Remove highlights from previous clicks
+			cy.nodes().removeStyle();
+			cy.edges().removeStyle();
 
 			var evtTarget = event.target;
 
 			if (evtTarget == cy) {
-				console.log('click on background');
-				cy.nodes().style("opacity", 1.0);
-				cy.edges().style("opacity", 1.0);
-			}
-			else if (evtTarget.isNode()) {
+				// This catches clicks somewhere in the graph
+			} else if (evtTarget.isNode()) {
 				var node = evtTarget;
-				console.log( 'clicked ' + node.id() );
 
 				// Neighbors of clicked node
 				var directlyConnected = node.neighborhood().merge(node);
-				console.log(directlyConnected);
 
 				// Hide all nodes that are not in Neighborhood
 				var absComplement = directlyConnected.absoluteComplement();
-				console.log(absComplement)
 
-				absComplement.style("opacity", 0.2);
-				directlyConnected.style("opacity", 1.0);
+				absComplement.style('opacity', 0.2);
+				directlyConnected.style('opacity', 1.0);
 
 				// Highlight the clicked node
-				node.style("border-width", "3px");
-				node.style("border-color", "red");
-			}
-
-			else if (evtTarget.isEdge) {
+				node.style('border-width', '3px');
+				node.style('border-color', 'red');
+			} else if (evtTarget.isEdge) {
 				// not yet implemented
 			}
 		});
 	}
 
-	// @ts-ignore
 	function getLocalName(uri) {
 		const parts = uri.split('#');
 		if (parts.length > 1) {
@@ -293,9 +264,54 @@
 		}
 	}
 
+	function popperFactory(ref, content, opts) {
+		// see https://floating-ui.com/docs/computePosition#options
+		const popperOptions = {
+			// matching the default behaviour from Popper@2
+			// https://floating-ui.com/docs/migration#configure-middleware
+			middleware: [flip(), shift({ limiter: limitShift() })],
+			...opts
+		};
+
+		function update() {
+			computePosition(ref, content, popperOptions).then(({ x, y }) => {
+				Object.assign(content.style, {
+					left: `${x}px`,
+					top: `${y}px`
+				});
+			});
+		}
+		update();
+		return { update };
+	}
+
+	cytoscape.use(cytoscapePopper(popperFactory));
+
 	/**
 	 * Functions
 	 */
+
+	function tippyFactory(ref, content) {
+		// Since tippy constructor requires DOM element/elements, create a placeholder
+		var dummyDomEle = document.createElement('div');
+
+		var tip = tippy(dummyDomEle, {
+			getReferenceClientRect: ref.getBoundingClientRect,
+			trigger: 'manual', // mandatory
+			// dom element inside the tippy:
+			content: content,
+			// your own preferences:
+			arrow: true,
+			placement: 'bottom',
+			hideOnClick: false,
+
+			// if interactive:
+			interactive: true,
+			appendTo: document.body // or append dummyDomEle to document.body
+		});
+
+		return tip;
+	}
 
 	// Function that sets tipy tooltip for the element
 	function setTooltip(ele) {
@@ -330,8 +346,6 @@
 			placement: 'bottom',
 			hideOnClick: false,
 
-			sticky: 'reference',
-
 			// if interactive:
 			interactive: true,
 			appendTo: document.body // or append dummyDomEle to document.body
@@ -351,15 +365,13 @@
 		if (ele.isNode()) {
 			var nodeType = data['type'];
 
-			if (nodeType == 'agent') {
+			if (nodeType == 'provone:User') {
 				tooltipText =
-					data['title'] +
-					' ' +
 					data['givenName'] +
 					' ' +
 					data['familyName'] +
 					'</br>ORCID: ' +
-					data['orcid'] +
+					data['hasORCID'] +
 					'</br>Mail: ' +
 					data['mbox'];
 			}
@@ -378,6 +390,12 @@
 				tooltipText =
 					'ID: ' + data['id'] + '</br>SHA-256: ' + data['sha256'] + '</br>path: ' + data['path'];
 			}
+
+			if (nodeType == 'provone:Execution') {
+				tooltipText = 
+					'Started: ' + data['startedAtTime'] + '</br>' + 
+					'Ended:  ' + data['endedAtTime'] 
+			}
 		}
 
 		return tooltipText;
@@ -393,7 +411,7 @@
 	<!--<button on:click={handleConnect}>Fetch Data</button>-->
 
 	<!-- Textarea to display the server response -->
-	<textarea readonly bind:value={serverResponse}></textarea>
+	<!-- <textarea readonly bind:value={serverResponse}></textarea>-->
 	<div id="cy"></div>
 </div>
 

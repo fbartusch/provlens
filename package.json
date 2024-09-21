@@ -36,7 +36,7 @@
 	},
 	"type": "module",
 	"dependencies": {
-		"@popperjs/core": "^2.11.8",
+		"@floating-ui/dom": "^1.6.11",
 		"cytoscape": "^3.30.2",
 		"cytoscape-popper": "^4.0.1",
 		"n3": "^1.22.0",
