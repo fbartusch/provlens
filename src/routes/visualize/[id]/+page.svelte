@@ -1,25 +1,28 @@
 <script>
 	import { page } from '$app/stores'; // Import the page store
-	import { dataset_gsp_endpoint, sparql_url } from '../../../store';
-	import { basicAuth } from '../../../store';
 	import { onMount } from 'svelte';
+	import { sparql_url } from '../../../store';
+	import { basicAuth } from '../../../store';
+	import { subgraphTemplate } from '$lib/queries/subgraph.sparql.njk';
 
-	import { subgraph_query } from '$lib/queries/subgraph.sparql';
+	import nunjucks from 'nunjucks';
+	nunjucks.configure({ autoescape: true });
 	import { Parser } from 'n3';
 
 	import cytoscape from 'cytoscape';
 	import cytoscapePopper from 'cytoscape-popper';
 	import { computePosition, flip, shift, limitShift } from '@floating-ui/dom';
-	import tippy, { sticky } from 'tippy.js';
+	import tippy from 'tippy.js';
 
-	let cy;
-
-	let serverResponse = ''; // Variable to hold the server's response
+	//let cy;
 	let cyElements = []; // Will hold the nodes and edges for Cytoscape
-
+	let serverResponse = ''; // Variable to hold the server's response
 	let responseText = '';
 	let hasError = false;
-	const handleConnect = async () => {
+
+	const handleConnect = async (query) => {
+		console.log('handleConnect with query:', query);
+
 		try {
 			// Reset error state and response text
 			hasError = false;
@@ -34,7 +37,7 @@
 					Accept: 'text/turtle'
 				},
 				body: new URLSearchParams({
-					query: subgraph_query
+					query: query
 				})
 			});
 
@@ -56,7 +59,9 @@
 
 	// Automatically run the function when the component is mounted
 	onMount(() => {
-		handleConnect(); // Run the function without a button click
+		const executionId = $page.params.id;
+		const query = nunjucks.renderString(subgraphTemplate, { executionId });
+		handleConnect(query);
 	});
 
 	// Parse the Turtle data and prepare Cytoscape elements
@@ -117,7 +122,7 @@
 		cyElements = [...cyNodes, ...cyEdges];
 
 		// Specify types
-		const agentTypes = {};
+		//const agentTypes = {};
 
 		// Parse the Turtle string and store each quad
 		const cy = cytoscape({
@@ -291,28 +296,6 @@
 	 * Functions
 	 */
 
-	function tippyFactory(ref, content) {
-		// Since tippy constructor requires DOM element/elements, create a placeholder
-		var dummyDomEle = document.createElement('div');
-
-		var tip = tippy(dummyDomEle, {
-			getReferenceClientRect: ref.getBoundingClientRect,
-			trigger: 'manual', // mandatory
-			// dom element inside the tippy:
-			content: content,
-			// your own preferences:
-			arrow: true,
-			placement: 'bottom',
-			hideOnClick: false,
-
-			// if interactive:
-			interactive: true,
-			appendTo: document.body // or append dummyDomEle to document.body
-		});
-
-		return tip;
-	}
-
 	// Function that sets tipy tooltip for the element
 	function setTooltip(ele) {
 		var tooltipText = buildTooltipText(ele);
@@ -360,6 +343,7 @@
 		var data = ele.data();
 
 		if (ele.isEdge()) {
+			// empty
 		}
 
 		if (ele.isNode()) {
@@ -380,9 +364,11 @@
 				tooltipText =
 					'ID: ' +
 					data['id'] +
-					'</br>Start: ' +
+					'</br>' +
+					'Start: ' +
 					data['startTime'] +
-					'</br>endTime: ' +
+					'</br>' +
+					'End: ' +
 					data['endTime'];
 			}
 
@@ -392,9 +378,8 @@
 			}
 
 			if (nodeType == 'provone:Execution') {
-				tooltipText = 
-					'Started: ' + data['startedAtTime'] + '</br>' + 
-					'Ended:  ' + data['endedAtTime'] 
+				tooltipText =
+					'Started: ' + data['startedAtTime'] + '</br>' + 'Ended:  ' + data['endedAtTime'];
 			}
 		}
 
@@ -405,26 +390,10 @@
 <div>
 	<h1>Execution Page</h1>
 	<p>Execution ID: {$page.params.id}</p>
-	<!-- Display the ID -->
-
-	<!-- Button to trigger the fetch request -->
-	<!--<button on:click={handleConnect}>Fetch Data</button>-->
-
-	<!-- Textarea to display the server response -->
-	<!-- <textarea readonly bind:value={serverResponse}></textarea>-->
 	<div id="cy"></div>
 </div>
 
 <style>
-	textarea {
-		width: 100%;
-		height: 200px;
-		padding: 10px;
-		font-family: monospace;
-		background-color: #f0f0f0;
-		border: 1px solid #ccc;
-	}
-
 	#cy {
 		position: absolute;
 		left: 50px;

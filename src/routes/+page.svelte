@@ -13,13 +13,7 @@
 	import { gsp_url } from '../store';
 	import { sparql_url } from '../store';
 	import { basicAuth } from '../store';
-	// URLs
-	// Make URLs Reactive? With $:
-	//let ping_url = `${$fuseki_url}/$/ping`;
-	//let gsp_url = `${$fuseki_url}/${$fuseki_dataset}/${$dataset_gsp_endpoint}`;
-	//let sparql_url = `${$fuseki_url}/${$fuseki_dataset}/${$dataset_sparql_endpoint}`;
-	// Create Basic Authorization header by encoding username and password to Base64
-	//const basicAuth = btoa(`${$fuseki_user}:${$fuseki_pw}`); // Base64 encode username:password
+
 	console.log('ping_url:', $ping_url);
 	console.log('gsp_url:', $gsp_url);
 	console.log('sparql_url:', $sparql_url);

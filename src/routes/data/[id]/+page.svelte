@@ -1,17 +1,20 @@
 <script>
 	import { page } from '$app/stores'; // Import the page store
 	import { onMount } from 'svelte';
-	import { subgraph_query } from '$lib/queries/subgraph.sparql';
-	// Subscribing to the page store to get the URL parameters
-	$: console.log($page.params.id); // Debug
-
 	import { sparql_url } from '../../../store';
 	import { basicAuth } from '../../../store';
+	import { subgraphTemplate } from '$lib/queries/subgraph.sparql.njk';
+
+	import nunjucks from 'nunjucks';
+	nunjucks.configure({ autoescape: true });
 
 	let serverResponse = ''; // Variable to hold the server's response
 	let responseText = '';
 	let hasError = false;
-	const handleConnect = async () => {
+
+	const handleConnect = async (query) => {
+		console.log('handleConnect with query:', query);
+
 		try {
 			// Reset error state and response text
 			hasError = false;
@@ -26,14 +29,14 @@
 					Accept: 'text/turtle' // Expecting JSON response
 				},
 				body: new URLSearchParams({
-					query: subgraph_query
+					query: query
 				})
 			});
 
 			if (response.ok) {
 				// Parse the JSON response
-				const data = await response.text(); // Use .text() for RDF/XML, .json() for JSON-LD, etc.
-				serverResponse = data; //JSON.stringify(data, null, 2);  // Pretty print JSON response
+				const data = await response.text();
+				serverResponse = data;
 				console.log('Server response:', serverResponse);
 			} else {
 				console.error('SPARQL query failed:', response.statusText);
@@ -47,20 +50,18 @@
 	};
 
 	// Automatically run the function when the component is mounted
-	onMount(() => {
-		handleConnect(); // Run the function without a button click
+	onMount(async () => {
+		const executionId = $page.params.id;
+		const query = nunjucks.renderString(subgraphTemplate, { executionId });
+		handleConnect(query);
 	});
 </script>
 
 <div>
 	<h1>Execution Page</h1>
 	<p>Execution ID: {$page.params.id}</p>
-	<!-- Display the ID -->
 
-	<!-- Button to trigger the fetch request -->
-	<!--<button on:click={handleConnect}>Fetch Data</button>-->
-
-	<!-- Textarea to display the server response -->
+	<!-- Textarea displaying RDF data -->
 	<textarea readonly bind:value={serverResponse}></textarea>
 </div>
 
