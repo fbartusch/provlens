@@ -85,7 +85,8 @@
 				// @@ts-expect-error
 				// Extract the bindings from the results and map them to table rows
 				tableData = data.results.bindings.map((row) => ({
-					execution: row.execution ? row.execution.value : 'Unknown',
+					graph: row.execution ? row.graph.value : 'Unknown',
+					execution: row.executionLocalName ? row.executionLocalName.value : 'Unknown',
 					label: row.label ? row.label.value : 'Unknown',
 					startTime: row.startTime ? row.startTime.value : 'Unknown',
 					endTime: row.endTime ? row.endTime.value : 'Unknown'
