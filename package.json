@@ -37,6 +37,7 @@
 	"type": "module",
 	"dependencies": {
 		"@floating-ui/dom": "^1.6.11",
+		"@fortawesome/fontawesome-free": "^6.6.0",
 		"cytoscape": "^3.30.2",
 		"cytoscape-popper": "^4.0.1",
 		"n3": "^1.22.0",

@@ -26,4 +26,4 @@ WHERE {
     OPTIONAL { ?execution <prov:endedAtTime> ?endTime . }
   }
 }
-`
+`;
