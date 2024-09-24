@@ -1,7 +1,7 @@
 <script>
 	
 	import { goto } from '$app/navigation';
-	import { execution_query } from '$lib/queries/execution.sparql';
+	import { ping_query } from '$lib/queries/ping.sparql';
 
 	import { fuseki_url } from '../../store';
 	import { fuseki_dataset } from '../../store';
@@ -9,6 +9,7 @@
 	import { dataset_sparql_endpoint } from '../../store';
 	import { fuseki_user } from '../../store';
 	import { fuseki_pw } from '../../store';
+	import { isFusekiConnected } from '../../store';
 
 	import { ping_url } from '../../store';
 	import { gsp_url } from '../../store';
@@ -52,6 +53,7 @@
 				console.log('Server Ping result', serverResponse);
 			} else {
 				console.error('Failed to ping Fuseki:', response.statusText);
+				$isFusekiConnected = false;
 				throw new Error(`HTTP error! Status: ${response.status}`);
 			}
 		} catch (error) {
@@ -60,7 +62,7 @@
 			serverResponse = `Ping server failed.\nURL: ${$ping_url}\nError message: ${error.message}\nPossible reasons: Wrong URL or Fuseki is not running.`;
 		}
 
-		// Send SPARQL query for workflow executions
+		// Test dataset_sparql_endpoint
 		try {
 			// Reset error state and response text
 			hasError = false;
@@ -75,52 +77,32 @@
 					Accept: 'application/sparql-results+json' // Expecting JSON response
 				},
 				body: new URLSearchParams({
-					query: execution_query
+					query: ping_query
 				})
 			});
 
 			if (response.ok) {
-				// Parse the JSON response
-				const data = await response.json();
-
-				// @@ts-expect-error
-				// Extract the bindings from the results and map them to table rows
-				tableData = data.results.bindings.map((row) => ({
-					graph: row.execution ? row.graph.value : 'Unknown',
-					execution: row.executionLocalName ? row.executionLocalName.value : 'Unknown',
-					label: row.label ? row.label.value : 'Unknown',
-					startTime: row.startTime ? row.startTime.value : 'Unknown',
-					endTime: row.endTime ? row.endTime.value : 'Unknown'
-				}));
-				serverResponse = JSON.stringify(data, null, 2); // Pretty print JSON response
+				serverResponse = await response.text();
 				console.log('Server response:', serverResponse);
+				$isFusekiConnected = true;
 			} else {
 				console.error('SPARQL query failed:', response.statusText);
+				$isFusekiConnected = false;
 				throw new Error(`HTTP error! Status: ${response.status}`);
 			}
 		} catch (error) {
-			console.error('Error:', error);
-			tableData = []; // Clear table data on error
+			console.error('Error:', error.message);
 			hasError = true;
-			serverResponse = `Fetching data failed.\nEndpoint URL: ${sparql_url}\nError message: ${error.message}\nPossible reasons: Wrong URL, Dataset, Endpoint, Username, or Password.`;
+			serverResponse = `Sending query failed.\nEndpoint URL: ${sparql_url}\nError message: ${error.message}\nPossible reasons: Wrong URL, Dataset, Endpoint, Username, or Password.`;
 		}
 	};
 
-	/**
-	 * @param {any} id
-	 */
-	function showData(id) {
-		goto(`/data/${id}`);
-	}
-
-	/**
-	 * @param {any} id
-	 */
-	function visualizeTrace(id) {
-		goto(`/visualize/${id}`);
+	 function gotoTraces() {
+		goto(`/traces`);
 	}
 </script>
 
+<!-- The Fuseki connection settings form -->
 <div class="container">
 	<h2>Fuseki connection details</h2>
 
@@ -170,45 +152,44 @@
 	</div>
 
 	<div>
-		<!-- Button to trigger the fetch request -->
+		<!-- Visualized connection result -->
+		<!-- if an error occurred, show the message -->
+		{#if hasError}
+		<div id="error-message" >
+			<span>
+				<i class="error fa-solid fa-circle-exclamation"></i>
+			</span>
+			<span class="error">
+				Connection failed.
+			</span>
+		</div>
+		<!-- TODO Show message that connection worked otherwise -->
+		{:else}
+		<div id="success-message" >
+			<span>
+				<i class="success fa-solid fa-circle-check"></i>
+			</span>
+			<span class="success">
+				Connection success.
+			</span>
+		</div>
+
+		{/if}
+		<!-- button for connecting to Triple Store -->
 		<button on:click={handleConnect}>Connect</button>
 
-		<!-- Conditionally display the textarea if there is an error -->
-		<!--{#if hasError}-->
-		<textarea readonly bind:value={serverResponse}></textarea>
-		<!--{/if}-->
-
-		{#if tableData.length > 0}
-			<h3>Query Results</h3>
-			<table>
-				<thead>
-					<tr>
-						<th>Label</th>
-						<th>Start Time</th>
-						<th>End Time</th>
-						<th>Actions</th>
-						<!-- Header for buttons -->
-					</tr>
-				</thead>
-				<tbody>
-					{#each tableData as row}
-						<tr>
-							<td>{row.label}</td>
-							<td>{row.startTime}</td>
-							<td>{row.endTime}</td>
-							<td>
-								<button on:click={() => showData(row.execution)} class="btn show-data"
-									>Show Data</button
-								>
-								<button on:click={() => visualizeTrace(row.execution)} class="btn visualize"
-									>Visualize</button
-								>
-							</td>
-						</tr>
-					{/each}
-				</tbody>
-			</table>
+		<!-- In case of error, show error message below 'Connect' button -->
+		{#if hasError}
+		<div id="error-message" >
+			<textarea readonly bind:value={serverResponse}></textarea>
+		</div>
+		{:else}
+			<!-- Button for traces listing -->
+			<button on:click={() => gotoTraces()} class="btn">List traces</button>
 		{/if}
+
+		<!-- TODO Add a connection status icon into header-->
+		<!-- TODO Add option for offline mode??? -->
 	</div>
 </div>
 
@@ -242,15 +223,15 @@
 	button {
 		width: 100%;
 		padding: 10px;
-		background-color: salmon;
-		color: salmon;
+		background-color: var(--color1);
+		color: var(--color5);
 		border: none;
 		border-radius: 5px;
 		cursor: pointer;
 	}
 
 	button:hover {
-		background-color: salmon;
+		background-color: var(--color2);
 	}
 
 	textarea {
@@ -321,46 +302,29 @@
 		background-color: #0b7dda; /* Darker blue */
 	}
 
-	/* Responsive table */
-	@media (max-width: 768px) {
-		table {
-			width: 100%;
-			display: block;
-			overflow-x: auto;
-			white-space: nowrap;
-		}
+	.error {
+		color: red;
+	}
 
-		th,
-		td {
-			display: block;
-			text-align: right;
-			padding: 10px;
-		}
+	.success {
+		color: green;
+	}
 
-		th {
-			background-color: #4caf50;
-			color: white;
-			position: absolute;
-			top: 0;
-			left: 0;
-			width: 100%;
-			text-align: left;
-		}
+	.fa-solid {
+		font-size: 1.5em;
+	}
 
-		td {
-			position: relative;
-			padding-left: 50%;
-		}
+	#success-message {
+		margin-top: 1.5em;
+		text-align: left;
+	}
 
-		td::before {
-			content: attr(data-label);
-			position: absolute;
-			left: 0;
-			width: 45%;
-			padding-right: 10px;
-			white-space: nowrap;
-			font-weight: bold;
-			background: #f9f9f9;
-		}
+	#error-message {
+		margin-top: 1.5em;
+		text-align: left;
+	}
+
+	textarea {
+		resize: none;
 	}
 </style>
