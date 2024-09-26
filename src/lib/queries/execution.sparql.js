@@ -8,7 +8,7 @@ PREFIX schema:  <https://schema.org/>
 PREFIX scoro:   <http://purl.org/spar/scoro/>
 PREFIX xsd:     <http://www.w3.org/2001/XMLSchema#>
 
-SELECT DISTINCT ?graph (STRAFTER(STR(?execution), ":") AS ?executionLocalName) ?label ?startTime ?endTime
+SELECT DISTINCT ?graph (STRAFTER(STR(?execution), ":") AS ?executionLocalName) ?wfName ?wfVersion ?wfmsName ?wfmsVersion ?label ?startTime ?endTime
 WHERE {
   GRAPH ?graph {
     ?execution a <provone:Execution> .
@@ -24,6 +24,15 @@ WHERE {
 
     # Optionally get the end time if it exists
     OPTIONAL { ?execution <prov:endedAtTime> ?endTime . }
+    
+    # Optionally get the workflow name and workflow version
+    OPTIONAL {
+      ?execution <prov:qualifiedAssociation> ?association .
+      ?association <prov:hadPlan> ?workflow .
+      ?workflow <prov:label> ?wfName .
+      # TODO Change to prov:version when version is implemented
+      ?workflow <ex:revision> ?wfVersion .
+    }
   }
 }
 `;

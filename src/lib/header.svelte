@@ -6,7 +6,7 @@
 <header>
 	<img id="header-logo" src="/logo/PROVLens_Logo_light-font.svg" alt="Logo" />
 	<nav>
-		<a href="/">
+		<a href="/traces">
 			<i class="fas fa-list nav-icon"></i>
 			traces
 		</a>
