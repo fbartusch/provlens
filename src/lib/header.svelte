@@ -1,6 +1,6 @@
 <script>
 	import '@fortawesome/fontawesome-free/css/all.min.css';
-	let repoUrl = 'https://github.com/fbartusch/visprov';
+	let repoUrl = 'https://github.com/fbartusch/provlens';
 </script>
 
 <header>
