@@ -5,6 +5,9 @@
 	import { sparql_url } from '../../store';
 	import { basicAuth } from '../../store';
 	import { isFusekiConnected } from '../../store';
+	import { filterWorkflowValue, filterVersionValue, filterEndValue, filterStartValue, filterLabelValue } from '../../store';
+	import { filterWorkflowPlaceholder, filterVersionPlaceholder, filterEndPlaceholder, filterStartPlaceholder, filterLabelPlaceholder } from '../../store';
+
 	console.log('sparql_url:', $sparql_url);
 
 	let serverResponse = '';
@@ -105,6 +108,43 @@
 		return formattedDate;
 	}
 
+	function applyFilters() {
+		// Get Table DOM element
+		const table = document.getElementById('traces-table');
+		const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+
+    // Loop through all rows in the table body
+		for (let i = 0; i < rows.length; i++) {
+			const workflow = rows[i].getElementsByTagName('td')[0].textContent.toLowerCase();
+			const version = rows[i].getElementsByTagName('td')[1].textContent.toLowerCase();
+			const startTime = rows[i].getElementsByTagName('td')[2].textContent.toLowerCase();
+			const endTime = rows[i].getElementsByTagName('td')[3].textContent.toLowerCase();
+			const label = rows[i].getElementsByTagName('td')[4].textContent.toLowerCase();
+
+      // Check if each row matches the filter
+      if (
+        (workflow.indexOf($filterWorkflowValue) > -1 || $filterWorkflowValue === '') &&
+        (version.indexOf($filterVersionValue) > -1 || $filterVersionValue === '') &&
+        (startTime.indexOf($filterStartValue) > -1 || $filterStartValue === '') &&
+        (endTime.indexOf($filterEndValue) > -1 || $filterEndValue === '') &&
+        (label.indexOf($filterLabelValue) > -1 || $filterLabelValue === '')) {
+			rows[i].style.display = ''; // Show row
+		} else {
+			rows[i].style.display = 'none'; // Hide row
+		}
+	}
+  }
+
+  function clearFilters() {
+	$filterWorkflowValue = '';
+	$filterVersionValue = '';
+	$filterEndValue = '';
+	$filterStartValue = '';
+	$filterLabelValue = '';
+	// Reapply filters to show all rows
+    applyFilters(); 
+  }
+
 	// Automatically run the function when the component is mounted
 	onMount(() => {
 		if(isFusekiConnected) {
@@ -117,11 +157,58 @@
 	<h2>Trace list</h2>
 
 	<!-- Filter panel -->
-	<!-- Filter by date -->
-	<!-- Filter by workflow -->
-	<!-- Filter by version -->
-	<!-- Filter by user -->
-	<!-- Filter by WFMS -->
+	<div>
+		<!-- Filter Section -->
+		<div>
+		  <label for="workflow-filter">Workflow:</label>
+		  <input
+		  	type="text"
+			id="workflow-filter"
+			bind:value={$filterWorkflowValue}
+			placeholder={$filterWorkflowPlaceholder}>
+		</div>
+		
+		<div>
+		  <label for="version-filter">Version:</label>
+		  <input
+		  	type="text"
+		  	id="version-filter"
+			bind:value={$filterVersionValue}
+			placeholder={$filterVersionPlaceholder}>
+		</div>
+		
+		<div>
+		  <label for="start-time-filter">Start Time:</label>
+		  <input
+		  	type="text"
+			id="start-time-filter"
+			bind:value={$filterStartValue}
+			placeholder={$filterStartPlaceholder}>
+		</div>
+	  
+		<div>
+		  <label for="end-time-filter">End Time:</label>
+		  <input
+		  	type="text"
+			id="end-time-filter"
+			bind:value={$filterEndValue}
+			placeholder={$filterEndPlaceholder}>
+		</div>
+	  
+		<div>
+		  <label for="label-filter">Label:</label>
+		  <input
+		  	type="text"
+			id="label-filter"
+			bind:value={$filterLabelValue}
+			placeholder={$filterLabelPlaceholder}>
+		</div>
+		
+		<div>
+		  <button id="apply-filters" on:click={applyFilters}>Apply Filters</button>
+		  <button id="clear-filters" on:click={clearFilters}>Clear Filters</button>
+		</div>
+	  </div>
 
 	<!-- Refresh button -->
 	<div>
@@ -131,7 +218,7 @@
 	<!-- Trace table -->
 	<div>
 		{#if tableData.length > 0}
-			<table>
+			<table id="traces-table">
 				<thead>
 					<tr>
 						<th>Workflow</th>

@@ -30,3 +30,17 @@ export const sparql_url = derived(
 export const basicAuth = derived([fuseki_user, fuseki_pw], ([$fuseki_user, $fuseki_pw]) =>
 	btoa(`${$fuseki_user}:${$fuseki_pw}`)
 );
+
+/* Trace filter placeholders */
+export const filterWorkflowPlaceholder = writable('Filter by Workflow');
+export const filterVersionPlaceholder = writable('Filter by Version');
+export const filterStartPlaceholder = writable('Filter by Start Time');
+export const filterEndPlaceholder = writable('Filter by End Time');
+export const filterLabelPlaceholder = writable('Filter by Label');
+
+/* Trace filter values */
+export const filterWorkflowValue = writable('');
+export const filterVersionValue = writable('');
+export const filterStartValue = writable('');
+export const filterEndValue = writable('');
+export const filterLabelValue = writable('');

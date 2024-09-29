@@ -12,7 +12,7 @@ CONSTRUCT {
   ?s ?p ?o .
 }
 WHERE {
-  GRAPH <http://example/trace_{{ executionId }}> {
+  GRAPH <http://example.com/trace_{{ executionId }}> {
     ?s ?p ?o .
   }
 }
