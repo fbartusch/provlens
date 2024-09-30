@@ -84,7 +84,8 @@
 			'prov:qualifiedAssociation',
 			'prov:used',
 			'prov:wasGeneratedBy',
-			'prov:wasAssociatedWith'
+			'prov:wasAssociatedWith',
+			'provone:controls'
 		];
 
 		const quads = parser.parse(data);
@@ -155,7 +156,7 @@
 				},
 				// Entity node Style
 				{
-					selector: 'node[type="prov:Entity"], node[type="provone:Data"], node[type="provone:Program"]', 
+					selector: 'node[type="prov:Entity"], node[type="provone:Controller"], node[type="provone:Data"], node[type="provone:Program"], node[type="provone:Workflow"]', 
 					style: {
 						shape: 'ellipse',
 						width: '75px',
@@ -335,7 +336,6 @@
 			},
 			// your own preferences:
 			theme: 'light-border',
-			//arrow: true,
 			placement: 'bottom',
 			hideOnClick: false,
 
@@ -359,6 +359,12 @@
 		if (ele.isNode()) {
 			var nodeType = data['type'];
 
+			tooltipText = "";
+
+			if (nodeType == 'provone:Controller') {
+				tooltipText = 'Version: ' + data['softwareVersion'] + '</br>Build: ' + data['build'] + '</br>Timestamp: ' + data['timestamp'] + '</br>DSL: ' + data['dsl'];
+			}
+
 			if (nodeType == 'provone:User') {
 				tooltipText =
 					data['givenName'] +
@@ -372,6 +378,10 @@
 
 			if (nodeType == 'provone:Program') {
 				tooltipText = "Script:</br>" + data['script'];
+			}
+
+			if (nodeType == 'provone:Workflow') {
+				tooltipText = "Repository: " + data['repository'] + '</br>Revision: ' + data['revision'] + '</br>Location: ' + data['location'];
 			}
 
 			if (nodeType == 'activity') {
