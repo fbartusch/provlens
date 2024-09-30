@@ -13,6 +13,7 @@
 	import cytoscapePopper from 'cytoscape-popper';
 	import { computePosition, flip, shift, limitShift } from '@floating-ui/dom';
 	import tippy from 'tippy.js';
+	import 'tippy.js/themes/light-border.css';
 
 	//let cy;
 	let cyElements = []; // Will hold the nodes and edges for Cytoscape
@@ -78,6 +79,9 @@
 		// Some predicates simply define an edge between two nodes
 		const edgeDefiningPreds = [
 			'provone:wasPartOf',
+			'prov:agent',
+			'prov:hadPlan',
+			'prov:qualifiedAssociation',
 			'prov:used',
 			'prov:wasGeneratedBy',
 			'prov:wasAssociatedWith'
@@ -151,7 +155,7 @@
 				},
 				// Entity node Style
 				{
-					selector: 'node[type="prov:Entity"], node[type="provone:Data"]',
+					selector: 'node[type="prov:Entity"], node[type="provone:Data"], node[type="provone:Program"]', 
 					style: {
 						shape: 'ellipse',
 						width: '75px',
@@ -173,7 +177,18 @@
 						'border-color': '#353aff'
 					}
 				},
-
+				// Influence node Style
+				{
+					selector: 'node[type="prov:qualifiedAssociation"]',
+					style: {
+						shape: 'rectangle',
+						width: '40px',
+						height: '40px',
+						'background-color': '#9fb1fc',
+						'border-width': '1px',
+						'border-color': '#353aff'
+					}
+				},
 				{
 					selector: 'edge',
 					style: {
@@ -197,12 +212,6 @@
 
 		// Set tooltip text for each node
 		cy.nodes().forEach(setTooltip);
-
-		/**
-		 *
-		 * Event implementations
-		 *
-		 */
 
 		/**
 		 * Mouseover
@@ -325,7 +334,8 @@
 				return div;
 			},
 			// your own preferences:
-			arrow: true,
+			theme: 'light-border',
+			//arrow: true,
 			placement: 'bottom',
 			hideOnClick: false,
 
@@ -358,6 +368,10 @@
 					data['hasORCID'] +
 					'</br>Mail: ' +
 					data['mbox'];
+			}
+
+			if (nodeType == 'provone:Program') {
+				tooltipText = "Script:</br>" + data['script'];
 			}
 
 			if (nodeType == 'activity') {
@@ -401,5 +415,9 @@
 		height: calc(100% - 100px);
 		border: 1px solid black;
 		padding: 5px;
+	}
+
+	.tooltip {
+		opacity: 0.5;
 	}
 </style>
